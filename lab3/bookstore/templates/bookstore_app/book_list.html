@@ -1,0 +1,53 @@
+<!-- bookstore_app/templates/bookstore_app/book_list.html -->
+{% extends 'bookstore_app/base.html' %}
+
+{% block content %}
+    <h2>Список книг</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Название</th>
+                <th>Автор</th>
+                <th>Издатель</th>
+                <th>Стоимость</th>
+                {% if user.is_staff %}
+                    <th>Действия</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for book in books %}
+                <tr>
+                    <td>{{ book.title }}</td>
+                    <td>{{ book.author }}</td>
+                    <td>{{ book.publisher|default:"Не указан" }}</td>
+                    <td>{{ book.cost|floatformat:2 }}</td>
+                    <td>
+                        {% if user.is_staff %}
+                            <a href="{% url 'edit_book' book.pk %}"><button>Изменить</button></a>
+                            <a href="{% url 'delete_book' book.pk %}"><button>Удалить</button></a>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="{% if user.is_staff %}5{% else %}4{% endif %}">Книги отсутствуют</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if is_paginated %}
+        <div class="pagination">
+            <span>
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}">Назад</a>
+                {% endif %}
+                <span>Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}">Вперед</a>
+                {% endif %}
+            </span>
+        </div>
+    {% endif %}
+{% endblock %}
