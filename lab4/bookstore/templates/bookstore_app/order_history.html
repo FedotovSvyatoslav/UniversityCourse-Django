@@ -1,0 +1,45 @@
+<!-- bookstore_app/templates/bookstore_app/order_history.html -->
+{% extends 'bookstore_app/base.html' %}
+
+{% block content %}
+    <h2>История заказов</h2>
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    {% if orders %}
+        {% for order in orders %}
+            <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;">
+                <h3>Заказ от {{ order.date }}</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Название</th>
+                            <th>Количество</th>
+                            <th>Цена за единицу</th>
+                            <th>Общая стоимость</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for book_id, item in order.items.items %}
+                            <tr>
+                                <td>{{ item.title }}</td>
+                                <td>{{ item.quantity }}</td>
+                                <td>{{ item.cost|floatformat:2 }}</td>
+                                <td>{{ item.cost|floatformat:2 }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <p><strong>Итоговая стоимость:</strong> {{ order.total_cost|floatformat:2 }}</p>
+            </div>
+        {% endfor %}
+        <p><a href="{% url 'clear_orders' %}"><button>Очистить историю заказов</button></a></p>
+    {% else %}
+        <p>У вас нет заказов.</p>
+    {% endif %}
+    <p><a href="{% url 'cart' %}">Вернуться к корзине</a> | <a href="{% url 'book_list' %}">Вернуться к списку книг</a></p>
+{% endblock %}

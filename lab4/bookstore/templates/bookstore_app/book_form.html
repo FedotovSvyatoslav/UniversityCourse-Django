@@ -1,0 +1,11 @@
+{% extends 'bookstore_app/base.html' %}
+
+{% block content %}
+    <h2>{% if form.instance.pk %}Редактировать книгу{% else %}Добавить книгу{% endif %}</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Сохранить</button>
+        <a href="{% url 'book_list' %}"><button type="button">Отмена</button></a>
+    </form>
+{% endblock %}
