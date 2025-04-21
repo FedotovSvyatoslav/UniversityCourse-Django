@@ -1,0 +1,40 @@
+<!-- bookstore_app/templates/bookstore_app/profile.html -->
+{% extends 'bookstore_app/base.html' %}
+
+{% block content %}
+    <h2>Личный кабинет</h2>
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    <p><strong>Имя пользователя:</strong> {{ user.username }}</p>
+    <p><strong>Роль: </strong>
+        {% if user.is_staff %}Администратор{% else %}Пользователь{% endif %}
+    </p>
+
+    <h3>Редактировать данные</h3>
+    <form method="post">
+        {% csrf_token %}
+        <h4>Обновить имя и email</h4>
+        {{ profile_form.as_p }}
+        <p>Role: <select name="role">
+                <option value="user">Пользователь</option>
+                <option value="admin" {% if user.is_staff %}selected{% endif %}>Администратор</option>
+            </select>
+        </p>
+        <input type="hidden" name="action" value="update_profile">
+        <button type="submit">Сохранить имя и email</button>
+    </form>
+
+    <form method="post">
+        {% csrf_token %}
+        <h4>Сменить пароль</h4>
+        {{ password_form.as_p }}
+        <input type="hidden" name="action" value="change_password">
+        <button type="submit">Сменить пароль</button>
+    </form>
+    <p><a href="{% url 'book_list' %}">Вернуться к списку книг</a></p>
+{% endblock %}
