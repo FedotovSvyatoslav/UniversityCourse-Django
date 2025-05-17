@@ -1,0 +1,209 @@
+<!-- bookstore_app/templates/bookstore_app/profile.html -->
+{% extends 'bookstore_app/base.html' %}
+
+{% block content %}
+    <h2>Личный кабинет</h2>
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    <p><strong>Имя пользователя:</strong> {{ user.username }}</p>
+    <p><strong>Роль: </strong>
+        {% if user.is_staff %}Администратор{% else %}Пользователь{% endif %}
+    </p>
+
+    {% if form.errors %}
+        <div style="color: red;">
+            <ul>
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <li>{{ field.label }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <h3>Редактировать данные</h3>
+    <form method="post" id="profile-form" novalidate>
+        {% csrf_token %}
+        <h4>Обновить имя и email</h4>
+        {{ profile_form.as_p }}
+        <input type="hidden" name="current_user_id" value="{{ user.id }}">
+        <p>Role: <select name="role">
+                <option value="user">Пользователь</option>
+                <option value="admin" {% if user.is_staff %}selected{% endif %}>Администратор</option>
+            </select>
+        </p>
+        <input type="hidden" name="action" value="update_profile">
+        <button type="submit">Сохранить имя и email</button>
+    </form>
+
+    <form method="post" id="password-form" novalidate>
+        {% csrf_token %}
+        <h4>Сменить пароль</h4>
+        {{ password_form.as_p }}
+        <input type="hidden" name="action" value="change_password">
+        <button type="submit">Сменить пароль</button>
+    </form>
+    <p><a href="{% url 'book_list' %}">Вернуться к списку книг</a></p>
+
+    <script>
+        const profileForm = document.getElementById('profile-form');
+        const profileFirstnameInput = document.getElementById("id_first_name");
+        const profileEmailInput = document.getElementById('id_email');
+        const currentUserId = profileForm.querySelector('input[name="current_user_id"]').value;
+
+        function showError(input, message) {
+            let errorDiv = input.nextElementSibling;
+            if (!errorDiv || !errorDiv.classList.contains('error-message')) {
+                errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.style.color = 'red';
+                input.parentNode.insertBefore(errorDiv, input.nextSibling);
+            }
+            errorDiv.textContent = message;
+            input.classList.add('error');
+        }
+
+        function clearError(input) {
+            const errorDiv = input.nextElementSibling;
+            if (errorDiv && errorDiv.classList.contains('error-message')) {
+                errorDiv.textContent = '';
+            }
+            input.classList.remove('error');
+            input.classList.add('valid');
+        }
+
+        function validateFirstname() {
+            const username = profileFirstnameInput.value;
+            const validUsernameRegex = /^[a-zA-Z\s]+$/;
+            if (username.length > 0 && !validUsernameRegex.test(username)) {
+                showError(profileFirstnameInput, 'Имя пользователя может содержать только буквы, цифры и подчёркивание.');
+                return false;
+            } else if (username.length < 2 && username.length > 0) {
+                showError(profileFirstnameInput, 'Имя пользователя должно быть не короче 2 символов.');
+                return false;
+            }
+            clearError(profileFirstnameInput);
+            return true;
+        }
+
+        async function validateEmail() {
+            const email = profileEmailInput.value;
+            const emailRegex = /^[a-zA-Z0-9_.]+@[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+$/;
+            if (!emailRegex.test(email)) {
+                showError(profileEmailInput, 'Введите действительный адрес электронной почты.');
+                return false;
+            }
+            try {
+                const response = await fetch(`/check-email/?email=${encodeURIComponent(email)}&current_user_id=${currentUserId}`);
+                const data = await response.json();
+                if (data.exists) {
+                    showError(profileEmailInput, 'Этот адрес электронной почты уже используется.');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Ошибка при проверке email:', error);
+                showError(profileEmailInput, 'Не удалось проверить email. Попробуйте позже.');
+                return false;
+            }
+
+            clearError(profileEmailInput);
+            return true;
+        }
+
+        function validateProfileForm() {
+            const isFirstnameValid = validateFirstname();
+            const isEmailValid = validateEmail();
+            return isFirstnameValid && isEmailValid;
+        }
+
+        profileForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            if (validateProfileForm()) {
+                profileForm.submit();
+            }
+        });
+
+        profileFirstnameInput.addEventListener('input', validateFirstname)
+        profileEmailInput.addEventListener('input', async () => await validateEmail());
+
+        validateProfileForm();
+
+        const passwordForm = document.getElementById('password-form');
+        const oldPasswordInput = document.getElementById('id_old_password');
+        const newPassword1Input = document.getElementById('id_new_password1');
+        const newPassword2Input = document.getElementById('id_new_password2');
+
+
+
+        function validateForm() {
+            const isUsernameValid = validateUsername();
+            const isFirstnameValid = validateFirstname();
+            const isEmailValid = validateEmail();
+            const arePasswordsValid = validatePasswords();
+            return isUsernameValid && isFirstnameValid && isEmailValid && arePasswordsValid;
+        }
+
+        function validateNewPasswords() {
+            const newPassword1 = newPassword1Input.value;
+            const newPassword2 = newPassword2Input.value;
+            const commonPasswords = ['password', '12345678', 'qwerty123', 'admin123'];
+
+            if (newPassword1.length < 8 && newPassword1.length > 0) {
+                showError(newPassword1Input, 'Новый пароль должен содержать не менее 8 символов.');
+                return false;
+            } else if (commonPasswords.includes(newPassword1.toLowerCase())) {
+                showError(newPassword1Input, 'Этот пароль слишком распространённый.');
+                return false;
+            } else if (newPassword1 !== newPassword2) {
+                showError(newPassword2Input, 'Новые пароли не совпадают.');
+                return false;
+            }
+            clearError(newPassword1Input);
+            clearError(newPassword2Input);
+            return true;
+        }
+
+        function validatePasswordForm() {
+            return validateNewPasswords();
+        }
+
+        passwordForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            if (validatePasswordForm()) {
+                passwordForm.submit();
+            }
+        });
+
+        newPassword1Input.addEventListener('input', validateNewPasswords);
+        newPassword2Input.addEventListener('input', validateNewPasswords);
+
+        validatePasswordForm();
+    </script>
+
+    <style>
+        .error {
+            border: 2px solid red;
+            background-color: #ffe6e6;
+            padding: 2px;
+        }
+        .error-message {
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            color: red;
+            font-weight: bold;
+        }
+        .valid {
+            border: 2px solid green;
+        }
+    </style>
+
+{% endblock %}

@@ -1,0 +1,53 @@
+<!-- bookstore_app/templates/bookstore_app/book_list_fragment.html -->
+{% if page_obj %}
+    <table border="1" cellpadding="5" cellspacing="0">
+        <thead>
+            <tr>
+                <th>Название</th>
+                <th>Автор</th>
+                <th>Издатель</th>
+                <th>Стоимость</th>
+                {% if request.user.is_staff %}
+                    <th>Действия</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for book in page_obj %}
+                <tr>
+                    <td>{{ book.title }}</td>
+                    <td>{{ book.author }}</td>
+                    <td>{{ book.publisher }}</td>
+                    <td>{{ book.cost }}</td>
+                    {% if request.user.is_staff %}
+                        <td>
+                            <a href="{% url 'edit_book' book.pk %}">Редактировать</a>
+                            <a href="{% url 'delete_book' book.pk %}" onclick="return confirm('Вы уверены?')">Удалить</a>
+                        </td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Пагинация -->
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page=1&q={{ query }}">« первая</a>
+                <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}">предыдущая</a>
+            {% endif %}
+
+            <span class="current">
+                Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}.
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&q={{ query }}">следующая</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}&q={{ query }}">последняя »</a>
+            {% endif %}
+        </span>
+    </div>
+{% else %}
+    <p>Нет доступных книг.</p>
+{% endif %}

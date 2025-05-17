@@ -1,0 +1,165 @@
+<!-- bookstore_app/templates/bookstore_app/register.html -->
+{% extends 'bookstore_app/base.html' %}
+
+{% block content %}
+    <h2>Регистрация</h2>
+    {% if form.errors %}
+        <div style="color: red;">
+            <ul>
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <li>{{ field.label }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+    <form method="post" id="register-form" novalidate>
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Зарегистрироваться</button>
+    </form>
+
+    <script>
+        const form = document.getElementById('register-form');
+        const loginInput = document.getElementById('id_username');
+        const firstnameInput = document.getElementById('id_first_name');
+        const emailInput = document.getElementById('id_email');
+        const password1Input = document.getElementById('id_password1');
+        const password2Input = document.getElementById('id_password2');
+
+        function showError(input, message) {
+            let errorDiv = input.nextElementSibling;
+            if (!errorDiv || !errorDiv.classList.contains('error-message')) {
+                errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.style.color = 'red';
+                input.parentNode.insertBefore(errorDiv, input.nextSibling);
+            }
+            errorDiv.textContent = message;
+            input.classList.add('error');
+        }
+
+        function clearError(input) {
+            const errorDiv = input.nextElementSibling;
+            if (errorDiv && errorDiv.classList.contains('error-message')) {
+                errorDiv.textContent = '';
+            }
+            input.classList.remove('error');
+            input.classList.add('valid');
+        }
+
+        function validateUsername() {
+            const username = loginInput.value;
+            const validUsernameRegex = /^[a-zA-Z0-9_]+$/;
+            if (username.length > 0 && !validUsernameRegex.test(username)) {
+                showError(loginInput, 'Имя пользователя может содержать только буквы, цифры и подчёркивание.');
+                return false;
+            } else if (username.length < 2 && username.length > 0) {
+                showError(loginInput, 'Имя пользователя должно быть не короче 2 символов.');
+                return false;
+            }
+            clearError(loginInput);
+            return true;
+        }
+        function validateFirstname() {
+            const username = firstnameInput.value;
+            const validUsernameRegex = /^[a-zA-Z\s]+$/;
+            if (username.length > 0 && !validUsernameRegex.test(username)) {
+                showError(firstnameInput, 'Имя пользователя может содержать только буквы, цифры и подчёркивание.');
+                return false;
+            } else if (username.length < 2 && username.length > 0) {
+                showError(firstnameInput, 'Имя пользователя должно быть не короче 2 символов.');
+                return false;
+            }
+            clearError(firstnameInput);
+            return true;
+        }
+
+        async function validateEmail() {
+            const email = emailInput.value;
+            const emailRegex = /^[a-zA-Z0-9_.]+@[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+$/;
+            if (!emailRegex.test(email)) {
+                showError(emailInput, 'Введите действительный адрес электронной почты.');
+                return false;
+            }
+            try {
+                const response = await fetch(`/check-email/?email=${encodeURIComponent(email)}`);
+                const data = await response.json();
+                if (data.exists) {
+                    showError(emailInput, 'Этот адрес электронной почты уже используется.');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Ошибка при проверке email:', error);
+                showError(emailInput, 'Не удалось проверить email. Попробуйте позже.');
+                return false;
+            }
+            clearError(emailInput);
+            return true;
+        }
+
+        function validatePasswords() {
+            const password1 = password1Input.value;
+            const password2 = password2Input.value;
+            const commonPasswords = ['password', '12345678', 'qwerty123', 'admin123'];
+
+            if (password1.length < 8) {
+                showError(password1Input, 'Пароль должен содержать не менее 8 символов.');
+                return false;
+            } else if (commonPasswords.includes(password1.toLowerCase())) {
+                showError(password1Input, 'Этот пароль слишком распространённый.');
+                return false;
+            } else if (password1 !== password2) {
+                showError(password2Input, 'Пароли не совпадают.');
+                return false;
+            }
+            clearError(password1Input);
+            clearError(password2Input);
+            return true;
+        }
+
+        function validateForm() {
+            const isUsernameValid = validateUsername();
+            const isFirstnameValid = validateFirstname();
+            const isEmailValid = validateEmail();
+            const arePasswordsValid = validatePasswords();
+            return isUsernameValid && isFirstnameValid && isEmailValid && arePasswordsValid;
+        }
+
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            if (validateForm()) {
+                form.submit();
+            }
+        });
+
+        loginInput.addEventListener('input', validateUsername);
+        firstnameInput.addEventListener('input', validateFirstname);
+        emailInput.addEventListener('input', async () => await validateEmail());
+        password1Input.addEventListener('input', validatePasswords);
+        password2Input.addEventListener('input', validatePasswords);
+
+        validateForm();
+    </script>
+
+    <style>
+        .error {
+            border: 2px solid red;
+            background-color: #ffe6e6;
+            padding: 2px;
+        }
+        .error-message {
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            color: red;
+            font-weight: bold;
+        }
+        .valid {
+            border: 2px solid green;
+        }
+    </style>
+{% endblock %}

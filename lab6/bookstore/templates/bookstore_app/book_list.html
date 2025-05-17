@@ -1,0 +1,129 @@
+<!-- bookstore_app/templates/bookstore_app/book_list.html -->
+{% extends 'bookstore_app/base.html' %}
+
+{% block content %}
+    <h2>Список книг</h2>
+    <form id="filter-form" method="get" novalidate>
+        <label for="query">Фильтр по названию:</label>
+        <input type="text" id="query" name="query" value="{{ query }}" placeholder="Введите название...">
+        <button type="submit">Фильтровать</button>
+        <button type="button" id="clear-filter">Сбросить</button>
+    </form>
+
+    <!-- Контейнер для списка книг -->
+    <div id="book-list">
+        {% include 'bookstore_app/book_list_fragment.html' %}
+    </div>
+
+    <script>
+        const filterForm = document.getElementById('filter-form');
+        const queryInput = document.getElementById('query');
+        const bookList = document.getElementById('book-list');
+        const clearFilterButton = document.getElementById('clear-filter');
+
+        // Функция для обновления списка книг через AJAX
+        async function updateBookList(query, page = 1) {
+            try {
+                bookList.classList.add('loading');
+                const response = await fetch(`/?q=${encodeURIComponent(query)}&page=${page}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+                const data = await response.text();
+                bookList.innerHTML = data; // Вставляем отрендеренный фрагмент
+
+                // Обновляем обработчики пагинации
+                const paginationLinks = bookList.querySelectorAll('.pagination a');
+                paginationLinks.forEach(link => {
+                    link.addEventListener('click', async (event) => {
+                        event.preventDefault();
+                        const url = new URL(link.href);
+                        const page = url.searchParams.get('page') || 1;
+                        const query = url.searchParams.get('q') || '';
+                        await updateBookList(query, page);
+                    });
+                });
+            } catch (error) {
+                console.error('Ошибка при обновлении списка книг:', error);
+                bookList.innerHTML = '<p>Ошибка при загрузке данных. Попробуйте позже.</p>';
+            } finally {
+                bookList.classList.remove('loading');
+            }
+        }
+
+        // Обработчик отправки формы
+        filterForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const query = queryInput.value.trim();
+            await updateBookList(query);
+        });
+
+        // Обработчик сброса фильтра
+        clearFilterButton.addEventListener('click', async () => {
+            queryInput.value = '';
+            await updateBookList('');
+        });
+
+        // Обновление при загрузке страницы с текущим query
+        window.addEventListener('load', async () => {
+            const initialQuery = queryInput.value.trim();
+            if (initialQuery) {
+                await updateBookList(initialQuery);
+            }
+        });
+
+        // Инициализация обработчиков пагинации при загрузке страницы
+        document.querySelectorAll('.pagination a').forEach(link => {
+            link.addEventListener('click', async (event) => {
+                event.preventDefault();
+                const url = new URL(link.href);
+                const page = url.searchParams.get('page') || 1;
+                const query = url.searchParams.get('q') || '';
+                await updateBookList(query, page);
+            });
+        });
+    </script>
+
+    <style>
+        #filter-form {
+            margin-bottom: 20px;
+        }
+        #filter-form input[type="text"] {
+            padding: 5px;
+            width: 200px;
+        }
+        #filter-form button {
+            padding: 5px 10px;
+            margin-left: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .pagination {
+            margin-top: 20px;
+        }
+        .pagination a {
+            margin: 0 5px;
+            text-decoration: none;
+        }
+        .pagination .current {
+            font-weight: bold;
+        }
+        .loading {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    </style>
+{% endblock %}
